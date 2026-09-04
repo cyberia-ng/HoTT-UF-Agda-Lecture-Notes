@@ -27,3 +27,5 @@ index.md
 Gemfile.lock
 .bundle/
 vendor/
+\#*\#
+.\#*
