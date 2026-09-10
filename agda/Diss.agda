@@ -1,73 +1,98 @@
 module Diss where
 
-open import HoTT-UF-Agda public hiding (_+_; id; _∙'_)
-
-_+_ : ℕ → ℕ → ℕ
-m + n = ℕ-induction (λ _ → ℕ) m (λ _ → λ p → succ p) n
-
-proof1plus1 : 1 + 1 ＝ 2
-proof1plus1 = refl 2
+open import HoTT-UF-Agda public hiding (id; _∙'_; _≃_; is-set; is-equiv)
 
 module Addition where
-  open HoTT-UF-Agda.Arithmetic renaming (_+_ to add1)
-  open HoTT-UF-Agda.Arithmetic' renaming (_+_ to add2)
-  add3 = _+_
+  open HoTT-UF-Agda.Arithmetic renaming (_+_ to add₁)
+  open HoTT-UF-Agda.Arithmetic' renaming (_+_ to add₂)
+  add₃ : ℕ → ℕ → ℕ
+  add₃ m n = ℕ-induction (λ _ → ℕ) m (λ _ → λ p → succ p) n
 
-  add1_eq_add2_pw : (m n : ℕ) → add1 m n ＝ add2 m n
-  add1_eq_add2_pw 0 0 = refl 0
-  add1_eq_add2_pw (succ m) 0 = refl (succ m)
-  add1_eq_add2_pw 0 (succ n) = ap succ (add1_eq_add2_pw 0 n)
-  add1_eq_add2_pw (succ m) (succ n) = ap succ (add1_eq_add2_pw (succ m) n)
+  proof1plus1 : add₃ 1 1 ＝ 2
+  proof1plus1 = refl 2
 
-  add2_eq_add3_pw : (m n : ℕ) → add2 m n ＝ add3 m n
-  add2_eq_add3_pw 0 0 = refl 0
-  add2_eq_add3_pw (succ m) 0 = refl (succ m)
-  add2_eq_add3_pw 0 (succ n) = ap succ (add2_eq_add3_pw 0 n)
-  add2_eq_add3_pw (succ m) (succ n) = ap succ (add2_eq_add3_pw (succ m) n)
+  add₁_eq_add₂_pw : (m n : ℕ) → add₁ m n ＝ add₂ m n
+  add₁_eq_add₂_pw 0 0 = refl 0
+  add₁_eq_add₂_pw (succ m) 0 = refl (succ m)
+  add₁_eq_add₂_pw 0 (succ n) = ap succ (add₁_eq_add₂_pw 0 n)
+  add₁_eq_add₂_pw (succ m) (succ n) = ap succ (add₁_eq_add₂_pw (succ m) n)
 
-  add1_eq_add3_pw : (m n : ℕ) -> add1 m n ＝ add3 m n
-  add1_eq_add3_pw m n = (add1_eq_add2_pw m n) ∙ (add2_eq_add3_pw m n)
+  add₂_eq_add₃_pw : (m n : ℕ) → add₂ m n ＝ add₃ m n
+  add₂_eq_add₃_pw 0 0 = refl 0
+  add₂_eq_add₃_pw (succ m) 0 = refl (succ m)
+  add₂_eq_add₃_pw 0 (succ n) = ap succ (add₂_eq_add₃_pw 0 n)
+  add₂_eq_add₃_pw (succ m) (succ n) = ap succ (add₂_eq_add₃_pw (succ m) n)
 
-  add1_eq_add2 : funext 𝓤₀ 𝓤₀ → add1 ＝ add2
-  add1_eq_add2 fe = fe (λ m → fe (add1_eq_add2_pw m))
+  add₁_eq_add₃_pw : (m n : ℕ) -> add₁ m n ＝ add₃ m n
+  add₁_eq_add₃_pw m n = (add₁_eq_add₂_pw m n) ∙ (add₂_eq_add₃_pw m n)
 
-  add2_eq_add3 : funext 𝓤₀ 𝓤₀ → add2 ＝ add3
-  add2_eq_add3 fe = fe (λ m → fe (add2_eq_add3_pw m))
+  add₁_eq_add₂ : funext 𝓤₀ 𝓤₀ → add₁ ＝ add₂
+  add₁_eq_add₂ fe = fe (λ m → fe (add₁_eq_add₂_pw m))
 
-leq : ℕ → ℕ → 𝓤₀ ̇
-leq n m = Σ p ꞉ ℕ , (n + p) ＝ m
+  add₂_eq_add₃ : funext 𝓤₀ 𝓤₀ → add₂ ＝ add₃
+  add₂_eq_add₃ fe = fe (λ m → fe (add₂_eq_add₃_pw m))
 
-proof1leq2 : leq 1 3
-proof1leq2 = (2 , refl 3)
+module Equivalences where
+  id : ( A : 𝓤 ̇ ) → A → A
+  id A a = a
 
-id : ( A : 𝓤 ̇ ) → A → A
-id A a = a
+  qinv : {A : 𝓤 ̇} {B : 𝓥 ̇} (f : A → B) → 𝓤 ⊔ 𝓥 ̇
+  qinv {A = A} {B = B} f =
+    Σ g ꞉ (B → A) , ((f ∘ g) ∼ (id B)) × ((g ∘ f) ∼ (id A))
 
-ap2 : { A : 𝓤 ̇ } { B : 𝓥 ̇ } { x y : A }
-  (f : A → B) → (x ＝ y) → (f x ＝ f y)
-ap2 {A = A} {x = x} {y = y} f =
-  𝕁 A (λ x y _ → f x ＝ f y) (λ z → refl (f z)) x y
+  is-equiv : {A : 𝓤 ̇} {B : 𝓥 ̇} (f : A → B) → 𝓤 ⊔ 𝓥 ̇
+  is-equiv {A = A} {B = B} f =
+    (Σ g ꞉ (B → A) , f ∘ g ∼ (id B))
+      × (Σ h ꞉ (B → A) , h ∘ f ∼ (id A))
 
--- ap {x = x} f p = transport (λ y → f x ＝ f y) p (refl (f x))
+  _≃_ : (A : 𝓤 ̇) → (B : 𝓥 ̇) → 𝓤 ⊔ 𝓥 ̇
+  A ≃ B = Σ f ꞉ (A → B) , is-equiv f
 
-proof_ap_refl : { A : 𝓤 ̇ } { B : 𝓥 ̇ }
-  (f : A → B) (z : A) → ap2 f (refl z) ＝ refl (f z)
-proof_ap_refl f z = refl (refl (f z))
+  qinv-to-equiv : {A : 𝓤 ̇} {B : 𝓥 ̇} {f : A → B}
+    → (qinv f) → (is-equiv f)
+  qinv-to-equiv (g , (α , β)) = ((g , α) , (g , β))
 
-_∙'_ : {A : 𝓤 ̇} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
-p ∙' q = transport (λ v → v ＝ (rhs q)) (p ⁻¹) q
+module Fin where
+  open Equivalences public
+  open HoTT-UF-Agda.Arithmetic renaming (_+_ to add)
 
-proof_comp_equal : { A : 𝓤 ̇ } (x y : A) → (p : x ＝ y) → (z : A) → (q : y ＝ z) → (p ∙' q) ＝ (p ∙ q)
-proof_comp_equal {A = A} = 𝕁 A C₀ c₀
-  where
-    C₁ : {A : 𝓤 ̇} (x z : A) → x ＝ z → 𝓤 ̇
-    C₁ {A = A} x z q = (refl x) ∙' q ＝ (refl x) ∙ q
+  _≤_ : ℕ → ℕ → 𝓤₀ ̇
+  n ≤ m = Σ p ꞉ ℕ , (add p n) ＝ m
 
-    c₁ : {A : 𝓤 ̇} (x : A) → C₁ x x (refl x)
-    c₁ x = refl (refl x)
+  Fin : ℕ → 𝓤₀ ̇
+  Fin 0 = 𝟘
+  Fin (succ n) = 𝟙 + (Fin n)
 
-    C₀ : {A : 𝓤 ̇} (x y : A) → x ＝ y → 𝓤 ̇
-    C₀ {A = A} x y p = (z : A) → (q : y ＝ z) → (p ∙' q) ＝ (p ∙ q)
+  FinNat : ℕ → 𝓤₀ ̇
+  FinNat n = Σ k ꞉ ℕ , (succ k) ≤ n
 
-    c₀ : {A : 𝓤 ̇} (x : A) → C₀ x x (refl x)
-    c₀ {A = A} = 𝕁 A C₁ c₁
+  f : (n : ℕ) → Fin n → FinNat n
+  f 0 z = 𝟘-induction (λ _ → FinNat 0) z
+  f (succ n) (inl _) = (0 , (n , refl (succ n)))
+  f (succ n) (inr y) = (succ k , (p , ap succ q))
+    where
+      k = pr₁ (f n y)
+      p = pr₁ (pr₂ (f n y))
+      q = pr₂ (pr₂ (f n y))
+
+  g : (n : ℕ) → FinNat n → Fin n
+  g 0 (k , (p , q)) = 𝟘-induction (λ _ → Fin 0) z
+    where
+      code : ℕ → 𝓤₀ ̇
+      code 0 = 𝟘
+      code (succ _) = 𝟙
+      z : 𝟘
+      z = transport code q ⋆
+  g (succ n) (0 , (p , q)) = inl ⋆
+  g (succ n) (succ m , (p , q)) = inr (g n (m , (p , ap prev q)))
+    where
+      prev : ℕ → ℕ
+      prev 0 = 0
+      prev (succ n) = n
+
+  fin-equivalence : (n : ℕ)
+    → ((f n ∘ g n) ∼ id (FinNat n))
+    → ((g n ∘ f n) ∼ id (Fin n))
+    → Fin n ≃ FinNat n
+  fin-equivalence n alpha beta =
+    (f n , qinv-to-equiv (g n , (alpha , beta)))
