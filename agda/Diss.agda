@@ -75,6 +75,10 @@ module Fin where
       p = pr₁ (pr₂ (f n y))
       q = pr₂ (pr₂ (f n y))
 
+  prev : ℕ → ℕ
+  prev 0 = 0
+  prev (succ n) = n
+
   g : (n : ℕ) → FinNat n → Fin n
   g 0 (k , (p , q)) = 𝟘-induction (λ _ → Fin 0) z
     where
@@ -84,15 +88,75 @@ module Fin where
       z : 𝟘
       z = transport code q ⋆
   g (succ n) (0 , (p , q)) = inl ⋆
-  g (succ n) (succ m , (p , q)) = inr (g n (m , (p , ap prev q)))
+  g (succ n) (succ k , (p , q)) = inr (g n (k , (p , ap prev q)))
+
+  α : (n : ℕ) → (f n ∘ g n) ∼ id (FinNat n)
+  α 0 (k , (p , q)) = 𝟘-induction
+    (λ _ → f 0 (g 0 (k , (p , q))) ＝ (k , (p , q)))
+    z
     where
-      prev : ℕ → ℕ
-      prev 0 = 0
-      prev (succ n) = n
+      code : ℕ → 𝓤₀ ̇
+      code 0 = 𝟘
+      code (succ _) = 𝟙
+      z : 𝟘
+      z = transport code q ⋆
+  α (succ n) (0 , (p , q)) =
+    transport
+      (λ x → f (succ n) (g (succ n) (0 , (p , x))) ＝ (0 , (p , x)))
+      succ-prev-q-is-q
+      homotopy-with-succ-prev-q
+    where
+      C : (x y : ℕ) → (x ＝ y) → 𝓤₀ ̇
+      C x y r =
+        (f (succ y) (g (succ y) (0 , (x , ap succ r)))) ＝ (0 , (x , ap succ r))
+      c : (z : ℕ) → C z z (refl z)
+      c z = refl (0 , (z , refl (succ z)))
+
+      homotopy-with-succ-prev-q :
+        (f (succ n) (g (succ n) (0 , p , ap succ (ap prev q))))
+          ＝ (0 , (p , ap succ (ap prev q)))
+      homotopy-with-succ-prev-q = 𝕁 ℕ C c p n (ap prev q)
+
+      succ-prev-q-is-q : ap succ (ap prev q) ＝ q
+      succ-prev-q-is-q = ℕ-is-set (succ p) (succ n) (ap succ (ap prev q)) q
+  α (succ n) (succ k , (p , q)) =
+    transport (λ x → f (succ n) (g (succ n) (succ k , p , q)) ＝ (succ k , (p , x)))
+    succ-prev-q-is-q
+    ind-hyp-at-fg
+    where
+      ind-hyp : f n (g n (k , p , ap prev q)) ＝ (k , p , ap prev q)
+      ind-hyp = α n (k , (p , ap prev q))
+
+      D : (x : FinNat n) → 𝓤₀ ̇
+      D x =
+        f (succ n) (g (succ n) (succ k , p , q))
+          ＝ (succ (pr₁ x) , pr₁ (pr₂ x) , ap succ (pr₂ (pr₂ x)))
+     
+      ind-hyp-at-fg :
+        (f (succ n) (g (succ n) (succ k , (p , q))))
+          ＝ (succ k , (p , ap succ (ap prev q)))
+      ind-hyp-at-fg = transport D ind-hyp (refl _)
+
+      succ-prev-q-is-q : ap succ (ap prev q) ＝ q
+      succ-prev-q-is-q = ℕ-is-set _ (succ n) (ap succ (ap prev q)) q
+
+  β : (n : ℕ) → (g n ∘ f n) ∼ id (Fin n)
+  β 0 fin-elem = 𝟘-induction (λ _ → g 0 (f 0 fin-elem) ＝ fin-elem) fin-elem
+  β (succ n) (inl ⋆) = refl _
+  β (succ n) (inr prev-fin-elem) = {!!}
+    where
+      ind-hyp : g n (f n prev-fin-elem) ＝ prev-fin-elem
+      ind-hyp = β n prev-fin-elem
+
+      D : (x : Fin n) → 𝓤₀ ̇
+      D x = g (succ n) (f (succ n) (inr x)) ＝ inr x
+
+      out : g (succ n) (f (succ n) (inr (g n (f n prev-fin-elem)))) ＝ inr prev-fin-elem
+      out = refl _
+      -- Think I need to unpack f here and use succ-prev-q-is-q
 
   fin-equivalence : (n : ℕ)
-    → ((f n ∘ g n) ∼ id (FinNat n))
     → ((g n ∘ f n) ∼ id (Fin n))
     → Fin n ≃ FinNat n
-  fin-equivalence n alpha beta =
-    (f n , qinv-to-equiv (g n , (alpha , beta)))
+  fin-equivalence n beta =
+    (f n , qinv-to-equiv (g n , (α n , beta)))
